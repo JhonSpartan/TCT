@@ -13,14 +13,15 @@ from core.models import Point, Contour
 def create_test_image():
     img = np.zeros((500, 500), dtype=np.uint8)  # чёрный фон
     cv2.rectangle(img, (50, 50), (450, 450), 255, -1)  # белый квадрат
-    cv2.imwrite("test_square.png", img)
-    print("Создан test_square.png (белый квадрат на чёрном фоне)")
+    cv2.imwrite("traktor.png", img)
+    print("Создан traktor.png (белый квадрат на чёрном фоне)")
 
 
 # Тест 1: базовое выделение
 def test_basic_extraction():
     extractor = ContourExtractor(epsilon_factor=0.01)
-    contour, w, h = extractor.extract("test_square.png")
+    contour, w, h = extractor.extract("traktor.png")
+    contour, w, h = extractor.extract("traktor.png")
 
     print(f"Размер изображения: {w} x {h}")
     print(f"Найдено точек: {len(contour)}")
@@ -32,7 +33,7 @@ def test_basic_extraction():
 # Тест 2: сравнение с оригиналом
 def test_accuracy():
     extractor = ContourExtractor(epsilon_factor=0.001)
-    contour, w, h = extractor.extract("test_square.png")
+    contour, w, h = extractor.extract("traktor.png")
 
     # Ожидаем квадрат 400x400 (от 50,50 до 450,450)
     xs = [p.x for p in contour.points]

@@ -1,57 +1,53 @@
 """
 core/contour_extractor.py
-Автоматическое выделение контура из изображения
+Автоматическое выделение контура
 """
 
 import cv2
 import numpy as np
 from typing import Optional, Tuple
 from core.models import Point, Contour
+from core.settings import ContourSettings
 
 
 class ContourExtractor:
-    """Автоматическое выделение внешнего контура"""
-
-    def __init__(self, epsilon_factor: float = 0.001):
+    def __init__(self, epsilon_factor: float = 0.000075):
         """
-        epsilon_factor: точность упрощения контура (0.001 = 0.1%)
-        Чем меньше значение, тем точнее, но больше точек
+        epsilon_factor: коэффициент упрощения контура
+        0.000075 = ~450-500 точек для типового контура
+        0 = без упрощения (все точки)
         """
         self.epsilon_factor = epsilon_factor
 
-    def extract(self, image_path: str) -> Tuple[Optional[Contour], int, int]:
-        """
-        Возвращает (контур, ширина_пикс, высота_пикс)
-        """
-        # 1. Загружаем изображение в оттенках серого
+    def extract(self, image_path: str):
+        # Загружаем изображение в оттенках серого
         img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
         if img is None:
             return None, 0, 0
 
-        h, w = img.shape
+        h, w = img.shape  # ← вот откуда берутся h, w
 
-        # 2. Бинаризация: всё, что темнее 127, становится белым (255)
-        #    THRESH_BINARY_INV — инвертируем, чтобы объект был белым на чёрном
-        _, binary = cv2.threshold(img, 127, 255, cv2.THRESH_BINARY_INV)
+        # Бинаризация: порог 200 (для тёмного контура на светлом фоне)
+        _, binary = cv2.threshold(img, 200, 255, cv2.THRESH_BINARY_INV)
 
-        # 3. Находим все контуры
-        #    RETR_EXTERNAL — только внешние контуры (игнорируем дырки внутри)
-        #    CHAIN_APPROX_NONE — сохраняем все точки
+        # Поиск контуров
         contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
 
         if not contours:
             return None, w, h
 
-        # 4. Берём самый большой контур (по площади)
+        # Берём самый большой контур
         largest = max(contours, key=cv2.contourArea)
 
-        # 5. Упрощаем контур (убираем лишние точки, но сохраняем форму)
-        perimeter = cv2.arcLength(largest, True)
-        epsilon = self.epsilon_factor * perimeter
-        simplified = cv2.approxPolyDP(largest, epsilon, True)
-
-        # 6. Преобразуем в наш формат Point
-        points = [Point(x=float(p[0][0]), y=float(p[0][1])) for p in simplified]
+        # Упрощение контура (если epsilon_factor > 0)
+        if self.epsilon_factor > 0:
+            perimeter = cv2.arcLength(largest, True)
+            epsilon = self.epsilon_factor * perimeter
+            simplified = cv2.approxPolyDP(largest, epsilon, True)
+            points = [Point(x=float(p[0][0]), y=float(p[0][1])) for p in simplified]
+        else:
+            # Без упрощения — все точки
+            points = [Point(x=float(p[0][0]), y=float(p[0][1])) for p in largest]
 
         return Contour(points=points, closed=True), w, h
 
@@ -79,3 +75,9 @@ class ContourExtractor:
         points = [Point(x=float(p[0][0]), y=float(p[0][1])) for p in largest]
 
         return Contour(points=points, closed=True)
+
+    def get_contour_bounds_px(self, contour: Contour) -> Tuple[float, float, float, float]:
+        """Возвращает габариты контура в пикселях (min_x, max_x, min_y, max_y)"""
+        xs = [p.x for p in contour.points]
+        ys = [p.y for p in contour.points]
+        return (min(xs), max(xs), min(ys), max(ys))

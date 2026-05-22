@@ -1,16 +1,23 @@
-# main.py
 """
-Kovrik DXF Tool
-Главный модуль (пока просто заглушка)
+main.py
+Точка входа в приложение
 """
 
-from core.models import Point, Contour, Template
+import sys
+from PySide6.QtWidgets import QApplication
+from ui.main_window import MainWindow
+
 
 def main():
-    print("=== Kovrik DXF Tool ===")
-    print("Этап 1: Структура проекта и классы данных")
-    print("Классы созданы и протестированы.")
-    print("\nСледующий этап: автоматическое выделение контура (OpenCV)")
+    app = QApplication(sys.argv)
+    app.setApplicationName("Kovrik DXF Tool")
+    app.setOrganizationName("KovrikLab")
+
+    window = MainWindow()
+    window.show()
+
+    sys.exit(app.exec())
+
 
 if __name__ == "__main__":
     main()
